@@ -97,15 +97,13 @@ class external extends \external_api {
         $apikey = get_config('local_textinsights', 'apikey');
         $model = get_config('local_textinsights', 'model');
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.openai.com/v1/chat/completions');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $curl = new \curl();
+        $headers = [
             'Content-Type: application/json',
             'Authorization: Bearer ' . $apikey,
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+        ];
+
+        $postdata = json_encode([
             'model' => $model,
             'messages' => [
                 ['role' => 'system', 'content' => 'You are a helpful educational assistant.'],
@@ -113,11 +111,17 @@ class external extends \external_api {
             ],
             'max_tokens' => 500,
             'temperature' => 0.7,
-        ]));
+        ]);
 
-        $response = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $options = [
+            'CURLOPT_RETURNTRANSFER' => true,
+            'CURLOPT_HTTPHEADER' => $headers,
+        ];
+
+        $url = 'https://api.openai.com/v1/chat/completions';
+
+        $response = $curl->post($url, $postdata, $options);
+        $httpcode = $curl->get_info()['http_code'];
 
         if ($httpcode !== 200) {
             throw new \moodle_exception('apierror', 'local_textinsights');

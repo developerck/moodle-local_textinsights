@@ -39,3 +39,7 @@ $string['model_desc'] = 'Select the GPT model to use';
 $string['maxlength'] = 'Maximum text length';
 $string['maxlength_desc'] = 'Maximum number of characters that can be processed';
 $string['poweredby'] = 'Powered by AI';
+$string['privacy:metadata:local_textinsights'] = 'No personal data is stored by the Text Insights plugin.';
+$string['textoollong'] = 'The text is too long.';
+$string['invalidaction'] = 'Invalid action specified.';
+$string['apierror'] = 'Error communicating with OpenAI API.';
