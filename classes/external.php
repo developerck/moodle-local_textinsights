@@ -23,6 +23,7 @@
  */
 
 namespace local_textinsights;
+
 defined('MOODLE_INTERNAL') || die();
 
 require_once("$CFG->libdir/externallib.php");
@@ -34,12 +35,14 @@ require_once("$CFG->libdir/externallib.php");
  * @copyright  2025 DeveloperCK <developerck@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class external extends \external_api {
+class external extends \external_api
+{
     /**
      * Returns description of process_text parameters
      * @return \external_function_parameters
      */
-    public static function process_text_parameters() {
+    public static function process_text_parameters()
+    {
         return new \external_function_parameters([
             'text' => new \external_value(PARAM_TEXT, 'The text to process'),
             'action' => new \external_value(PARAM_ALPHA, 'Action to perform (explain/summarize/validate)'),
@@ -54,7 +57,8 @@ class external extends \external_api {
      * @param int $courseid The course ID
      * @return array
      */
-    public static function process_text($text, $action, $courseid) {
+    public static function process_text($text, $action, $courseid)
+    {
         global $USER;
 
         // Parameter validation.
@@ -92,52 +96,78 @@ class external extends \external_api {
             default:
                 throw new \moodle_exception('invalidaction', 'local_textinsights');
         }
-
-        // Call OpenAI API.
-        $apikey = get_config('local_textinsights', 'apikey');
-        $model = get_config('local_textinsights', 'model');
-
+        $config = get_config('local_textinsights');
         $curl = new \curl();
-        $headers = [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $apikey,
-        ];
+        if ($config->provider == 'ollama') {
+            $headers = [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $config->apikey,
+            ];
+            $url = $config->ollama_apiurl;
+            $postdata = json_encode([
+                'model' => $config->ollama_model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a helpful educational assistant.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'max_tokens' => 500,
+                'temperature' => 0.7,
+                'stream' => false
+            ]);
+            $response = $curl->post($url, $postdata, $options);
+            $httpcode = $curl->get_info()['http_code'];
 
-        $postdata = json_encode([
-            'model' => $model,
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are a helpful educational assistant.'],
-                ['role' => 'user', 'content' => $prompt],
-            ],
-            'max_tokens' => 500,
-            'temperature' => 0.7,
-        ]);
+            if ($httpcode !== 200) {
+                throw new \moodle_exception('apierror', 'local_textinsights');
+            }
 
-        $options = [
-            'CURLOPT_RETURNTRANSFER' => true,
-            'CURLOPT_HTTPHEADER' => $headers,
-        ];
+            $result = json_decode($response, true);
+            return [
+                'result' => $result['message']['content'],
+            ];
+        } else {
 
-        $url = 'https://api.openai.com/v1/chat/completions';
+            $headers = [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $config->apikey,
+            ];
+            $model = get_config('local_textinsights', 'model');
+            $url = 'https://api.openai.com/v1/chat/completions';
+            $postdata = json_encode([
+                'model' => $config->model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a helpful educational assistant.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ],
+                'max_tokens' => 500,
+                'temperature' => 0.7,
+            ]);
+            $options = [
+                'CURLOPT_RETURNTRANSFER' => true,
+                'CURLOPT_HTTPHEADER' => $headers,
+            ];
 
-        $response = $curl->post($url, $postdata, $options);
-        $httpcode = $curl->get_info()['http_code'];
 
-        if ($httpcode !== 200) {
-            throw new \moodle_exception('apierror', 'local_textinsights');
+            $response = $curl->post($url, $postdata, $options);
+            $httpcode = $curl->get_info()['http_code'];
+
+            if ($httpcode !== 200) {
+                throw new \moodle_exception('apierror', 'local_textinsights');
+            }
+
+            $result = json_decode($response, true);
+            return [
+                'result' => $result['choices'][0]['message']['content'],
+            ];
         }
-
-        $result = json_decode($response, true);
-        return [
-            'result' => $result['choices'][0]['message']['content'],
-        ];
     }
 
     /**
      * Returns description of process_text return values
      * @return \external_single_structure
      */
-    public static function process_text_returns() {
+    public static function process_text_returns()
+    {
         return new \external_single_structure([
             'result' => new \external_value(PARAM_TEXT, 'The processed text result'),
         ]);

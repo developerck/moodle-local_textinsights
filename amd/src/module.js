@@ -179,7 +179,7 @@ export const init = (courseId, capabilities) => {
     };
 
     // Handle context menu positioning and display
-    $(document).on('mouseup', '.course-content, .course-content *', async () => {
+    $(document).on('mouseup', '.course-content, .course-content *, #page-content', async () => {
         const selection = getSelectedText();
         if (!selection || !selection.text) {
             $menu.hide();

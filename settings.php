@@ -28,7 +28,37 @@ if ($hassiteconfig) {
     $settings = new admin_settingpage('local_textinsights', get_string('pluginname', 'local_textinsights'));
     $ADMIN->add('localplugins', $settings);
 
+    $settings->add(new admin_setting_description(
+        'local_textinsights/scope',
+        get_string('scope', 'local_textinsights'),
+        get_string('scope_desc', 'local_textinsights')
+    ));
     $settings->add(new admin_setting_configtext(
+        'local_textinsights/maxlength',
+        get_string('maxlength', 'local_textinsights'),
+        get_string('maxlength_desc', 'local_textinsights'),
+        '1000',
+        PARAM_INT
+    ));
+
+    $settings->add(new admin_setting_configselect(
+        'local_textinsights/provider',
+        get_string('provider', 'local_textinsights'),
+        get_string('provider_desc', 'local_textinsights'),
+        'openai',
+        [
+            'openai' => 'OPENAI [ChatGPT]',
+            'ollama' => 'Ollama',
+        ]
+    ));
+
+     $settings->add(new admin_setting_heading(
+        'local_textinsights/openai_settings',
+        get_string('openai_settings', 'local_textinsights'),
+        ''
+       
+    ));
+    $settings->add(new admin_setting_configpasswordunmask(
         'local_textinsights/apikey',
         get_string('apikey', 'local_textinsights'),
         get_string('apikey_desc', 'local_textinsights'),
@@ -47,11 +77,39 @@ if ($hassiteconfig) {
         ]
     ));
 
-    $settings->add(new admin_setting_configtext(
-        'local_textinsights/maxlength',
-        get_string('maxlength', 'local_textinsights'),
-        get_string('maxlength_desc', 'local_textinsights'),
-        '1000',
-        PARAM_INT
+    $settings->add(new admin_setting_heading(
+        'local_textinsights/ollama_settings',
+        get_string('ollama_settings', 'local_textinsights'),
+       ''
     ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_textinsights/ollama_apiurl',
+        get_string('ollama_apiurl', 'local_textinsights'),
+        get_string('ollama_apiurl_desc', 'local_textinsights'),
+        '',
+        PARAM_TEXT
+    ));
+    $settings->add(new admin_setting_configpasswordunmask(
+        'local_textinsights/ollama_apikey',
+        get_string('ollama_apikey', 'local_textinsights'),
+        get_string('ollama_apikey_desc', 'local_textinsights'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configselect(
+        'local_textinsights/ollama_model',
+        get_string('ollama_model', 'local_textinsights'),
+        get_string('ollama_model_desc', 'local_textinsights'),
+        'llama3',
+        [
+            'llama3' => 'llama3',
+            'mistral' => 'mistral',
+            'phi3' => 'phi3',
+        ]
+    ));
+
+
+   
 }
