@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025080102;
+$plugin->version   = 2025080103;
 $plugin->requires  = 2023042400; // Moodle 4.5.
 $plugin->component = 'local_textinsights';
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '1.1.0';
+$plugin->release   = '1.2.0';

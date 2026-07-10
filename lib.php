@@ -29,32 +29,50 @@
  */
 function local_textinsights_before_standard_html_head() {
     global $COURSE, $PAGE;
-        $page = $PAGE;
-    if ($page->context->contextlevel === CONTEXT_COURSE ||
-        $page->context->contextlevel === CONTEXT_MODULE) {
-        // Check capabilities.
-        $capabilities = [
-            'explain' => has_capability('local/textinsights:useexplain', $page->context),
-            'summarize' => has_capability('local/textinsights:usesummarize', $page->context),
-            'validate' => has_capability('local/textinsights:usevalidate', $page->context),
-        ];
-        // Only proceed if user has at least one capability.
-        if (array_filter($capabilities)) {
-            // Add required JavaScript.
-            $page->requires->jquery();
-            $page->requires->js_call_amd('local_textinsights/module', 'init', [
-                $COURSE->id,
-                $capabilities,
-            ]);
-            // Add required strings.
-            $page->requires->strings_for_js([
-                'explain',
-                'summarize',
-                'validate',
-                'loading',
-                'error',
-                'poweredby',
-            ], 'local_textinsights');
+    $page = $PAGE;
+    $contextlevel = $page->context->contextlevel;
+
+    $allowed = false;
+    $moduletype = '';
+
+    if ($contextlevel === CONTEXT_COURSE) {
+        $allowed = (bool) get_config('local_textinsights', 'enable_course');
+    } else if ($contextlevel === CONTEXT_MODULE) {
+        $enabledmodules = get_config('local_textinsights', 'enabled_modules');
+        $enabled = !empty($enabledmodules) ? explode(',', $enabledmodules) : [];
+        $cm = get_coursemodule_from_id('', $page->context->instanceid);
+        if ($cm) {
+            $moduletype = $cm->modname;
+            $allowed = in_array($moduletype, $enabled);
         }
     }
+
+    if (!$allowed) {
+        return;
+    }
+
+    // Check capabilities.
+    $capabilities = [
+        'explain'   => has_capability('local/textinsights:useexplain', $page->context),
+        'summarize' => has_capability('local/textinsights:usesummarize', $page->context),
+        'validate'  => has_capability('local/textinsights:usevalidate', $page->context),
+    ];
+
+    if (!array_filter($capabilities)) {
+        return;
+    }
+
+    $page->requires->jquery();
+    $page->requires->js_call_amd('local_textinsights/module', 'init', [
+        $COURSE->id,
+        $capabilities,
+    ]);
+    $page->requires->strings_for_js([
+        'explain',
+        'summarize',
+        'validate',
+        'loading',
+        'error',
+        'poweredby',
+    ], 'local_textinsights');
 }

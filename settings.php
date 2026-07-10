@@ -111,5 +111,64 @@ if ($hassiteconfig) {
     ));
 
 
-   
+    $settings->add(new admin_setting_heading(
+        'local_textinsights/prompt_settings',
+        get_string('prompt_settings', 'local_textinsights'),
+        get_string('prompt_settings_desc', 'local_textinsights')
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_textinsights/customprompt_explain',
+        get_string('customprompt_explain', 'local_textinsights'),
+        get_string('customprompt_desc', 'local_textinsights'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_textinsights/customprompt_summarize',
+        get_string('customprompt_summarize', 'local_textinsights'),
+        get_string('customprompt_desc', 'local_textinsights'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_configtextarea(
+        'local_textinsights/customprompt_validate',
+        get_string('customprompt_validate', 'local_textinsights'),
+        get_string('customprompt_desc', 'local_textinsights'),
+        '',
+        PARAM_TEXT
+    ));
+
+    $settings->add(new admin_setting_heading(
+        'local_textinsights/pagetype_settings',
+        get_string('pagetype_settings', 'local_textinsights'),
+        get_string('pagetype_settings_desc', 'local_textinsights')
+    ));
+
+    $settings->add(new admin_setting_configcheckbox(
+        'local_textinsights/enable_course',
+        get_string('enable_course', 'local_textinsights'),
+        get_string('enable_course_desc', 'local_textinsights'),
+        1
+    ));
+
+    $moduleoptions = [];
+    $installedmods = $DB->get_records('modules', ['visible' => 1], 'name ASC', 'name');
+    foreach ($installedmods as $mod) {
+        $modname = $mod->name;
+        $strkey = 'modulename';
+        $modstring = get_string_manager()->string_exists($strkey, 'mod_' . $modname)
+            ? get_string($strkey, 'mod_' . $modname)
+            : $modname;
+        $moduleoptions[$modname] = $modstring;
+    }
+    $settings->add(new admin_setting_configmulticheckbox(
+        'local_textinsights/enabled_modules',
+        get_string('enabled_modules', 'local_textinsights'),
+        get_string('enabled_modules_desc', 'local_textinsights'),
+        ['page' => 1, 'file' => 1],
+        $moduleoptions
+    ));
 }

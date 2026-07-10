@@ -44,8 +44,8 @@ class external extends \external_api
     public static function process_text_parameters()
     {
         return new \external_function_parameters([
-            'text' => new \external_value(PARAM_TEXT, 'The text to process'),
-            'action' => new \external_value(PARAM_ALPHA, 'Action to perform (explain/summarize/validate)'),
+            'text'     => new \external_value(PARAM_TEXT, 'The text to process'),
+            'action'   => new \external_value(PARAM_ALPHA, 'Action to perform (explain/summarize/validate)'),
             'courseid' => new \external_value(PARAM_INT, 'Course ID'),
         ]);
     }
@@ -59,42 +59,62 @@ class external extends \external_api
      */
     public static function process_text($text, $action, $courseid)
     {
-        global $USER;
+        global $DB, $PAGE;
 
-        // Parameter validation.
         $params = self::validate_parameters(self::process_text_parameters(), [
-            'text' => $text,
-            'action' => $action,
+            'text'     => $text,
+            'action'   => $action,
             'courseid' => $courseid,
         ]);
 
-        // Context validation.
         $context = \context_course::instance($params['courseid']);
         self::validate_context($context);
+        require_capability("local/textinsights:use{$params['action']}", $context);
 
-        // Capability checks.
-        $capability = "local/textinsights:use{$action}";
-        require_capability($capability, $context);
-
-        // Length validation.
         $maxlength = get_config('local_textinsights', 'maxlength');
         if (strlen($params['text']) > $maxlength) {
             throw new \moodle_exception('textoollong', 'local_textinsights');
         }
 
-        // Prepare prompt based on action.
-        switch ($params['action']) {
-            case 'explain':
-                $prompt = "Explain this text in simple terms: {$params['text']}";
-                break;
-            case 'summarize':
-                $prompt = "Summarize this text concisely: {$params['text']}";
-                break;
-            case 'validate':
-                $prompt = "Validate the accuracy of this text and point out any issues: {$params['text']}";
-                break;
-            default:
-                throw new \moodle_exception('invalidaction', 'local_textinsights');
+        // Resolve context variables server-side.
+        $course = get_course($params['courseid']);
+        $coursename = format_string($course->fullname);
+        $coursesummary = content_to_text($course->summary ?? '', $course->summaryformat ?? FORMAT_HTML);
+        $topicname = '';
+        $modulename = '';
+
+        if ($PAGE->context->contextlevel === CONTEXT_MODULE && !empty($PAGE->cm)) {
+            $section = $DB->get_record('course_sections', ['id' => $PAGE->cm->section], 'name');
+            $topicname = format_string($section->name ?? '');
+            $modinfo = get_fast_modinfo($course)->get_cm($PAGE->cm->id);
+            $modulename = $modinfo->get_formatted_name();
+        }
+
+        // Build prompt: use custom if set, else default.
+        $customprompt = trim(get_config('local_textinsights', 'customprompt_' . $params['action']));
+        if (!empty($customprompt)) {
+            $prompt = str_replace(
+                ['{coursename}', '{summary}', '{topicname}', '{modulename}', '{text}'],
+                [$coursename, $coursesummary, $topicname, $modulename, $params['text']],
+                $customprompt
+            );
+        } else {
+            $context_hint = "You are an educational assistant for the course '{$coursename}'" .
+                (!empty($topicname) ? ", topic '{$topicname}'" : '') .
+                (!empty($modulename) ? ", activity '{$modulename}'" : '') . ". ";
+            switch ($params['action']) {
+                case 'explain':
+                    $prompt = $context_hint . "Explain this text in simple terms: {$params['text']}";
+                    break;
+                case 'summarize':
+                    $prompt = $context_hint . "Summarize this text concisely: {$params['text']}";
+                    break;
+                case 'validate':
+                    $prompt = $context_hint . "Validate the accuracy of this text and point out any issues: {$params['text']}";
+                    break;
+                default:
+                    throw new \moodle_exception('invalidaction', 'local_textinsights');
+            }
         }
         $config = get_config('local_textinsights');
         $curl = new \curl();
